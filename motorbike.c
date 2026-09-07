@@ -317,7 +317,8 @@ void MotorBike_Initialize()
  
 void MotorBike_Reset()
 {
-      
+    bike_frame = 0; 
+
     if (game_map == MAP_ATTRACT_INTRO ||
         game_map == STAGE1_FRONTVIEW ||
         game_map == STAGE2_FRONTVIEW ||
@@ -415,7 +416,7 @@ void MotorBike_UpdatePosition(UWORD x, UWORD y, UBYTE state)
             else
             {
                 /* City: toggle between 2 frames */
-                bike_frame ^= 1;
+                bike_frame = (bike_frame + 1) & 1;
 
                 if (bike_frame == 0)
                     current_bike_sprite = spr_bike_moving2;
