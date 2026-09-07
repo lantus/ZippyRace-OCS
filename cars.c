@@ -1322,7 +1322,10 @@ void Cars_CheckPassing(BlitterObject *c)
         
         if (game_rank > 1)
             game_rank--;
-        
+
+        if (game_rank < game_best_rank)
+            game_best_rank = game_rank;     
+ 
         car_was_ahead[c->id] = FALSE;
     }
     else if (!car_was_ahead[c->id] && car_is_ahead)

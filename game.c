@@ -167,7 +167,9 @@ UBYTE game_map = MAP_ATTRACT_INTRO;
 UWORD max_stage_speed;
 ULONG game_score;
 UBYTE game_rank;
+UBYTE game_best_rank; 
 ULONG game_frame_count = 0;
+
 
 UBYTE game_car_block_move_rate = 5;   // Frames between movements (lower = faster)
 UBYTE game_car_block_move_speed = 1;  // Pixels per move (higher = faster)
@@ -237,6 +239,14 @@ BOOL bike_invulnerable = FALSE;
  
 WORD bike_wy = 0;
 
+UBYTE game_continues = MAX_CONTINUES;
+static GameTimer continue_timer;      // Ticks the 9->0 countdown
+static UBYTE continue_countdown;      // 9 down to 0
+
+ /* Keep score, fuel, rank — don't reset them */
+static UBYTE stage_start_rank;
+static ULONG stage_start_score;
+
 void Game_Initialize()
 {
     Timer_Init();
@@ -283,7 +293,8 @@ void Game_Initialize()
   
     game_state = TITLE_SCREEN;
     game_map = MAP_ATTRACT_INTRO;
-    
+    game_best_rank = 99;  
+     
     /* Load city attract tiles for title screen */
     TilesheetPool_Load(TILEPOOL_CITY_ATTRACT);
     
@@ -354,6 +365,8 @@ void Game_Reset(void)
     stage_state = STAGE_BEGIN;
     fuel_alarm_active = FALSE;
 
+    game_best_rank = 99;  
+
     TilesheetPool_Load(TILEPOOL_CITY_ATTRACT);
     City_ResetRoadState();
     Game_SetMap(game_map);
@@ -398,7 +411,7 @@ void Game_AdvanceStage(void)
        /* Completed all 5 stages — loop with higher difficulty */
         game_stage = STAGE_LASVEGAS;
         game_rank = 99;  /* Reset rank for new loop */
-
+ 
         switch (game_difficulty)
         {
             case FIVEHUNDREDCC:
@@ -426,6 +439,9 @@ void Game_StartNextOverhead(void)
     game_state = STAGE_START;
     stage_state = STAGE_BEGIN;
     
+    stage_start_rank  = game_rank;
+    stage_start_score = game_score;
+
     /* Keep score, fuel, rank — don't reset them */
     
     collision_state = COLLISION_NONE;
@@ -466,7 +482,7 @@ void Game_StartNextOverhead(void)
             max_stage_speed = base_speed;
             TilesheetPool_Load(TILEPOOL_LEVEL1);
             game_map = STAGE1_OVERHEAD;
-            stage_music = MUSIC_START;
+            stage_music = (game_continues == MAX_CONTINUES) ? MUSIC_START : MUSIC_ONROAD;
             current_palette = city_colors;
             road_tile_plain = 11;
             start_offset = -15;
@@ -511,8 +527,7 @@ void Game_StartNextOverhead(void)
             max_stage_speed = base_speed;
             TilesheetPool_Load(TILEPOOL_LEVEL1);
             game_map = STAGE1_OVERHEAD;
-            stage_music = MUSIC_START;
-        
+            stage_music = (game_continues == MAX_CONTINUES) ? MUSIC_START : MUSIC_ONROAD;
             break;
     }
     
@@ -563,7 +578,7 @@ void Game_StartNextOverhead(void)
     Road_CacheFillVisible();
     Game_SwapBuffers();
     
-    if (game_stage == STAGE_LASVEGAS)
+    if (game_stage == STAGE_LASVEGAS && game_continues == MAX_CONTINUES)
     {
         Stage_ShowInfo();
     }
@@ -596,10 +611,16 @@ void Game_NewGame(UBYTE difficulty)
     game_state = STAGE_START;
     game_map = STAGE1_OVERHEAD;
     collision_state = COLLISION_NONE;
+
+    game_continues = MAX_CONTINUES; 
+
     game_difficulty = difficulty;
     game_score = 0;
     bike_speed = 0;
     game_rank = 99; // Start in 99th
+
+    stage_start_rank  = 99;      
+    stage_start_score = 0;  
 
     switch (difficulty)
     {
@@ -1180,7 +1201,7 @@ void GameReady_Update(void)
 
         Stage_ShowInfo();
         StageProgress_SetStage(0);
-        Music_LoadModule(MUSIC_START);
+        Music_LoadModule((game_continues == MAX_CONTINUES) ? MUSIC_START : MUSIC_ONROAD);
     }    
  
 }
@@ -1308,6 +1329,25 @@ void Stage_Draw()
         Fuel_Draw(); 
         StageProgress_DrawFrontview();
       
+    }
+    else if (stage_state == STAGE_CONTINUE)
+    {
+        char num[2];
+        num[0] = '0' + continue_countdown;
+        num[1] = '\0';
+
+        Font_DrawStringCentered(draw_buffer, "CONTINUE", 90, 17);
+
+        Font_ClearArea(draw_buffer, 0, 120, SCREENWIDTH, 8);
+
+        if (gameover_text_visible)
+            Font_DrawStringCentered(draw_buffer, num, 120, 17);
+        else
+            Font_ClearArea(draw_buffer, 0, 120, SCREENWIDTH, 8);
+
+        Font_DrawStringCentered(draw_buffer, "PRESS FIRE", 150, 13);
+
+        Game_ResetBitplanePointer();
     }
     else if (stage_state == STAGE_FUEL_EMPTY)
     {
@@ -1464,7 +1504,7 @@ void Stage_Update()
 
     if (stage_state == STAGE_BEGIN)
     {
-        if (game_stage == STAGE_LASVEGAS)
+        if (game_stage == STAGE_LASVEGAS && game_continues == MAX_CONTINUES)
         {
             countdown_value = 4;
             Timer_Start(&countdown_timer, 1);
@@ -1540,8 +1580,9 @@ void Stage_Update()
         // Check if fuel is empty
         if (Fuel_IsEmpty())
         {
-            
+            bike_state = BIKE_STATE_CRASHED;
             bike_speed = 0;
+            prev_bike_state = -1;
             stage_state = STAGE_FUEL_EMPTY;
             
             fuel_empty_y = videoposy + BLOCKHEIGHT + 128;
@@ -1923,7 +1964,19 @@ void Stage_Update()
             BlitClearScreen(screen.offscreen_bitplanes, SCREENWIDTH << 6 | 256);
             BlitClearScreen(screen.pristine, SCREENWIDTH << 6 | 256);
             
-            Music_LoadModule(MUSIC_GAMEOVER);
+            if (game_continues > 0)
+            {
+                fuel_alarm_active = FALSE;    
+                stage_state = STAGE_CONTINUE;   // offer a continue
+                Music_Stop();
+            }
+            else
+            {
+        
+                fuel_alarm_active = FALSE;
+                stage_state = STAGE_GAMEOVER;   // out of continues  
+                Music_LoadModule(MUSIC_GAMEOVER);
+            }
         }
     }
     else if (stage_state == STAGE_FRONTVIEW)
@@ -1938,11 +1991,7 @@ void Stage_Update()
         {
             // Slow bike to a stop
             bike_speed = 0;
-            
-            // Transition to game over
-            stage_state = STAGE_GAMEOVER;
-          
-
+   
             // Turn off Bike
             Sprites_ClearLower();
             Sprites_ClearHigher();
@@ -1950,14 +1999,23 @@ void Stage_Update()
             Game_ApplyPalette((UWORD *)black_palette, BLOCKSCOLORS);
             WaitVBL();
   
-
             BlitClearScreen(screen.bitplanes, SCREENWIDTH << 6 | 256);
             BlitClearScreen(screen.offscreen_bitplanes, SCREENWIDTH << 6 | 256);
             BlitClearScreen(screen.pristine, SCREENWIDTH << 6 | 256);
  
-
-            Music_LoadModule(MUSIC_GAMEOVER); 
-
+            if (game_continues > 0)
+            {
+                fuel_alarm_active = FALSE;    
+                stage_state = STAGE_CONTINUE;   // offer a continue
+                Music_Stop();
+            }
+            else
+            {
+                fuel_alarm_active = FALSE;
+                stage_state = STAGE_GAMEOVER;   // out of continues  
+                Music_LoadModule(MUSIC_GAMEOVER);
+            }
+            
             return;
         }
 
@@ -2105,6 +2163,73 @@ void Stage_Update()
             UpdateRoadScroll(bike_speed, game_frame_count);
         }
     }
+    else if (stage_state == STAGE_CONTINUE)
+    {
+        HUD_Show1UP();
+ 
+        if (!Timer_IsActive(&continue_timer))
+        {
+            continue_countdown = 9;
+            Timer_Start(&continue_timer, 1);          /* one tick per second */
+            Timer_StartMs(&gameover_flash_timer, 300);
+            gameover_text_visible = TRUE;
+            Game_ApplyPalette(intro_colors, BLOCKSCOLORS);
+        }
+
+        /* Player accepts the continue */
+        if (JoyFirePressed())
+        {
+            game_continues--;
+            Timer_Stop(&continue_timer);
+            Timer_Stop(&gameover_flash_timer);
+
+            game_rank  = stage_start_rank;
+
+            Fuel_Reset();               /* full tank again */
+            Game_StartNextOverhead();   /* restarts the CURRENT stage from the top */
+            return;
+        }
+
+        /* Flash the number */
+        if (Timer_HasElapsed(&gameover_flash_timer))
+        {
+            gameover_text_visible = !gameover_text_visible;
+            Timer_Reset(&gameover_flash_timer);
+        }
+
+        /* Tick 9 -> 0; hitting 0 is real game over */
+        if (Timer_HasElapsed(&continue_timer))
+        {
+            Timer_Reset(&continue_timer);
+
+            if (continue_countdown > 0)
+            {
+                continue_countdown--;
+                SFX_Play(SFX_OVERHEADOVERTAKE);
+            }
+            else
+            {
+                Timer_Stop(&continue_timer);
+                Timer_Stop(&gameover_flash_timer);
+       
+                Sprites_ClearLower();
+                Sprites_ClearHigher();
+
+                Game_ApplyPalette((UWORD *)black_palette, BLOCKSCOLORS);
+                WaitVBL();
+
+                BlitClearScreen(screen.bitplanes,          SCREENWIDTH << 6 | 256);
+                BlitClearScreen(screen.offscreen_bitplanes, SCREENWIDTH << 6 | 256);
+                BlitClearScreen(screen.pristine,            SCREENWIDTH << 6 | 256);
+
+                Timer_Stop(&gameover_timer);         
+
+                Music_LoadModule(MUSIC_GAMEOVER);
+
+                stage_state = STAGE_GAMEOVER;
+            }
+        }
+    }
     else if (stage_state == STAGE_RANKING)
     {
         HUD_Show1UP();
@@ -2188,7 +2313,7 @@ void Stage_Update()
         {
             /* Insert into high score table */
             const char *name = NameEntry_GetName();
-            HiScore_Insert(game_score, game_rank, name);
+            HiScore_Insert(game_score, game_best_rank, name);
             
             /* Return to attract */
             Game_Reset();

@@ -133,9 +133,10 @@ enum StageState
     STAGE_FRONTVIEW = 3,
     STAGE_COMPLETE = 4,
     STAGE_RANKING = 5,   
-    STAGE_GAMEOVER = 6,
-    STAGE_GAMEOVER_ENTRY = 7,
-    STAGE_FUEL_EMPTY = 8
+    STAGE_CONTINUE = 6,
+    STAGE_GAMEOVER = 7,
+    STAGE_GAMEOVER_ENTRY = 8,
+    STAGE_FUEL_EMPTY = 9
 };
 
 typedef enum {
@@ -145,10 +146,15 @@ typedef enum {
     COLLISION_WATER = 3
 } CollisionState;
  
+#define MAX_CONTINUES 3
+
 extern UBYTE game_stage;
 extern UBYTE game_state;
 extern UBYTE game_difficulty;
 extern UBYTE game_map;
+extern UBYTE game_best_rank;
+extern UBYTE game_continues;
+
 extern UWORD max_stage_speed;
 
 extern UBYTE stage_state;

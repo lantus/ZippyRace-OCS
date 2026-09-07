@@ -238,7 +238,7 @@ void AttractMode_DrawText(void)
 
     Font_DrawStringCentered(draw_buffer, COPYRIGHT "1983 IREM CORP", 148, 5);
 
-    Font_DrawString(draw_buffer,  "V1.0", 160, 200, 6);
+    Font_DrawString(draw_buffer,  "V1.1", 160, 200, 6);
 
 
 }
@@ -260,7 +260,7 @@ void AttractMode_ShowCredits(void)
     
     AttractMode_BlitAmiLogo();
     Font_DrawStringCentered(draw_buffer, "Amiga Forever", 170, 7);  
-    Font_DrawString(draw_buffer,  "V1.0", 160, 200, 6);
+    Font_DrawString(draw_buffer,  "V1.1", 160, 200, 6);
  
 }
 

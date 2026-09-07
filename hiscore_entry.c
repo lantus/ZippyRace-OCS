@@ -95,7 +95,7 @@ void NameEntry_Draw(UBYTE *buffer)
             Font_DrawString(buffer, line_buffer, COL_SCORE, y, color);
             
             char rank_str[8];
-            HiScore_FormatRank(game_rank, rank_str);
+            HiScore_FormatRank(game_best_rank, rank_str);
             Font_DrawString(buffer, rank_str, COL_RANK, y, color);
             
             for (int c = 0; c < 3; c++)
