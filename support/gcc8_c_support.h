@@ -86,6 +86,26 @@ __attribute__((always_inline)) inline short divsw(int a, short b) {
     return a;
 }
 
+/* ==== WHDLoad build: neutralize WinUAE debug hooks ==== */
+#ifdef WHDLOAD
+#undef  KPrintF
+#define KPrintF(...)                        ((void)0)
+#define debug_register_bitmap(...)          ((void)0)
+#define debug_unregister_bitmap(...)        ((void)0)
+#define debug_register_copperlist(...)      ((void)0)
+#define debug_register_palette(...)         ((void)0)
+#define debug_start_idle(...)               ((void)0)
+#define debug_stop_idle(...)                ((void)0)
+#define debug_clear(...)                    ((void)0)
+#define debug_filename(...)                 ((void)0)
+#define debug_text(...)                     ((void)0)
+#define debug_vsync(...)                    ((void)0)
+#define debug_set_gfx(...)                  ((void)0)
+#define warpmode(...)                       ((void)0)
+#endif
+
 #ifdef __cplusplus
 	} // extern "C"
 #endif
+
+

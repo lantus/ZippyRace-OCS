@@ -249,11 +249,14 @@ static ULONG stage_start_score;
 
 void Game_Initialize()
 {
+     
     Timer_Init();
     Preloader_Init();
 
     Sprites_Initialize();
     HiScore_Initialize();
+
+    
     
     Pak_Open("objects.dat");
     Pak_Open("stages.dat");
@@ -263,6 +266,8 @@ void Game_Initialize()
     Pak_Open("sfx.dat");
     Pak_Open("palettes.dat");
  
+    
+    
 	/* Load ALL assets while OS is alive */
 
     Preloader_LoadAll();
@@ -318,6 +323,8 @@ void Game_Initialize()
     }
 
     prev_bike_state = -1;
+
+    custom->color[0]=0x000;
     
 }
 

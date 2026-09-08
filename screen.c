@@ -61,9 +61,9 @@ void Screen_Initialize_DoubleBuff(UWORD width,
     draw_buffer = screen.bitplanes;
     display_buffer = screen.offscreen_bitplanes;
   
-    debug_register_bitmap(screen.bitplanes, "screen.bitplanes", width, height, 4, 1 << 0);
-    debug_register_bitmap(screen.offscreen_bitplanes, "screen.offscreen_bitplanes", width, height, 4, 1 << 0);
-    debug_register_bitmap(screen.pristine, "screen.pristine", width, height, 4, 1 << 0);
+    //debug_register_bitmap(screen.bitplanes, "screen.bitplanes", width, height, 4, 1 << 0);
+    //debug_register_bitmap(screen.offscreen_bitplanes, "screen.offscreen_bitplanes", width, height, 4, 1 << 0);
+    //debug_register_bitmap(screen.pristine, "screen.pristine", width, height, 4, 1 << 0);
 
 }
  

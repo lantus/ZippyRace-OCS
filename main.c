@@ -310,6 +310,7 @@ __attribute__((interrupt)) void interruptHandler()
 static BOOL paused = FALSE;
 static UBYTE prev_key = 0;
  
+ 
 int main(void)
 {
 	LONG x = 0;
@@ -345,20 +346,25 @@ int main(void)
     }
  
 	Game_Initialize();
+ 
 	OpenDisplay();
-
-		
+ 
 	volatile UBYTE *ciabprb = (volatile UBYTE *)0xBFD100;
     *ciabprb = 0xF7;   /* 1111 0111 — motor off, select DF0 */
     *ciabprb = 0xFF;   /* 1111 1111 — all deselected */
-
+ 
 	KillSystem();
+ 
 	InitCopperlist();
-
+ 
 	Copper_SetPalette(0, 0x003);
-
+ 
 	// Enable VBlank first
-	custom->intena = INTF_SETCLR | INTF_INTEN | INTF_VERTB;
+	custom->intena = INTF_SETCLR | INTF_INTEN | INTF_VERTB
+#ifdef WHDLOAD
+	               | INTF_PORTS		/* let WHDLoad's keyboard hook breathe */
+#endif
+	;
 	custom->intreq = (1<<INTB_VERTB);  // Clear pending
 	
 	SetInterruptHandler((APTR)interruptHandler);
@@ -370,9 +376,10 @@ int main(void)
     {		 
 		WaitLine(0x13);
 
+#ifndef WHDLOAD
 		KeyRead();
-		//custom->color[0] = 0x0F0;  // G = game work done, waiting
-
+#endif
+		 
 		Joy_ReadAll();
 
 		Game_Update();

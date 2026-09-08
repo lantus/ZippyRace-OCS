@@ -1,6 +1,7 @@
 #ifndef _GAME_
 #define _GAME_
 
+
 #include <clib/exec_protos.h>
 #include "disk.h"
 #include "screen.h"

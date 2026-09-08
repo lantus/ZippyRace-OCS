@@ -1,4 +1,21 @@
 #include "gcc8_c_support.h"
+
+#ifdef WHDLOAD
+#undef KPrintF
+#undef debug_register_bitmap
+#undef debug_unregister_bitmap
+#undef debug_register_copperlist
+#undef debug_register_palette
+#undef debug_start_idle
+#undef debug_stop_idle
+#undef debug_clear
+#undef debug_filename
+#undef debug_text
+#undef debug_vsync
+#undef debug_set_gfx
+#undef warpmode
+#endif
+
 #include <proto/exec.h>
 extern struct ExecBase* SysBase;
 

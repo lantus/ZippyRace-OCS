@@ -68,46 +68,53 @@ void KillSystem()
 {
 	thisprocess = (struct Process *)FindTask(0);
 
-	// safe actual view and install null view
-
+#ifndef WHDLOAD
+	// save actual view and install null view
 	oldview = GfxBase->ActiView;
-	
+
 	Forbid();
 	LoadView(0);
 	WaitTOF();
 	WaitTOF();
+#else
+	// Under WHDLoad/kickemu there is no user view to preserve, and
+	// WaitTOF can hang forever (graphics VBlank server isn't driven).
+	// WHDLoad restores the system itself on quit.
+	Forbid();
+#endif
 
-    VBR = GetVBR();
- 
-	/* Disable CPU caches on 020+ */
-    if (SysBase->AttnFlags & AFF_68020)
-    {
-        CacheControl(0, CACRF_EnableI | CACRF_EnableD | CACRF_CopyBack);
-        CacheClearU();
-    }
+	VBR = GetVBR();
+
+	/* Disable CPU caches on 020+ — only if exec actually has
+	   CacheControl (V36+). KS1.3 exec (kickemu, or real 1.3 machines
+	   with accelerators e.g. PiStorm) lacks the LVO — calling it
+	   jumps into garbage. */
+	if (SysBase->LibNode.lib_Version >= 36 &&
+	    (SysBase->AttnFlags & AFF_68020))
+	{
+		CacheControl(0, CACRF_EnableI | CACRF_EnableD | CACRF_CopyBack);
+		CacheClearU();
+	}
 
 	// lock blitter
-
 	OwnBlitter();
 	WaitBlit();
-	
-	// no multitasking/interrupts
 
+	// no multitasking/interrupts
 	Disable();
 
 	// save important custom registers
-	
 	old_dmacon = custom->dmaconr | 0x8000;
 	old_intena = custom->intenar | 0x8000;
 	old_adkcon = custom->adkconr | 0x8000;
 	old_intreq = custom->intreqr | 0x8000;
-    
-    APTR *vectors = (APTR *)((UBYTE *)VBR);
-    for (int i = 0; i < 7; i++)
-        saved_vectors[i] = vectors[0x64/4 + i];
 
-    system_killed = TRUE;
-    os_disabled = TRUE;
+	APTR *vectors = (APTR *)((UBYTE *)VBR);
+	for (int i = 0; i < 7; i++)
+		saved_vectors[i] = vectors[0x64/4 + i];
+
+	system_killed = TRUE;
+	os_disabled = TRUE;
 }
 
 void ActivateSystem(void)
@@ -285,6 +292,7 @@ void KeyRead(void)
     // If key-up event, ignore it
     if (raw & 0x01)
         current_keycode = 0xFF;
+ 
 }
 
 
